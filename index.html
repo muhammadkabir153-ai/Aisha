@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ha">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Portion Tracker — Kayan Miya</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <meta name="theme-color" content="#1976d2">
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Portion Tracker — Kayan Miya</h1>
+      <div class="pill">Offline-ready</div>
+    </header>
+
+    <main class="card">
+      <section class="controls">
+        <input id="newName" type="text" placeholder="Sunan kaya (e.g. Attaruhu)">
+        <input id="newPrice" type="number" placeholder="Farashin portion (₦)" min="0" step="1">
+        <button id="addBtn" class="btn">Add Item</button>
+
+        <div class="right-actions">
+          <button id="exportCsv" class="btn small">Export CSV</button>
+          <button id="resetBtn" class="btn ghost small">Reset Counts</button>
+          <button id="clearAllBtn" class="btn ghost small danger">Clear All</button>
+        </div>
+      </section>
+
+      <table id="itemsTable" aria-label="Kayan Miya Table">
+        <thead>
+          <tr>
+            <th>Kaya</th>
+            <th>Price (₦)</th>
+            <th>Portions</th>
+            <th class="right">Total Sales (₦)</th>
+            <th class="right">Profit (₦)</th>
+            <th class="right">Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <div class="totals">
+        <div class="tot-card">Total Portions: <strong id="totalQty">0</strong></div>
+        <div class="tot-card">Total Sales: <strong id="totalSales">₦0</strong></div>
+        <div class="tot-card">Total Profit: <strong id="totalProfit">₦0</strong></div>
+      </div>
+    </main>
+
+    <footer>Data saved in this browser (localStorage). Use Export CSV to backup. Install via browser menu → "Add to Home screen".</footer>
+  </div>
+
+  <script src="script.js" defer></script>
+</body>
+</html>

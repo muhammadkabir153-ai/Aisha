@@ -1,0 +1,35 @@
+:root{
+  --bg:#f3f6f9; --card:#ffffff; --muted:#6b7280; --accent:#0b6fb8; --danger:#ef4444;
+}
+*{box-sizing:border-box}
+body{
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  background:var(--bg); margin:0; padding:20px;
+  color:#111;
+}
+.wrap{max-width:980px;margin:0 auto;}
+header{display:flex;align-items:center;gap:12px;padding:6px;}
+h1{margin:0;font-size:22px;}
+.pill{margin-left:auto;background:#e6f2ff;color:var(--accent);padding:6px 10px;border-radius:999px;font-weight:600}
+.card{background:var(--card); border-radius:12px; padding:14px; margin-top:12px; box-shadow:0 10px 30px rgba(15,15,15,0.04);}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.controls input[type="text"], .controls input[type="number"]{padding:10px;border-radius:8px;border:1px solid #e2e8f0;min-width:160px}
+.right-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+table{width:100%; border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden}
+th,td{padding:12px;border-bottom:1px solid #f1f5f9; text-align:left; vertical-align:middle;}
+th{color:var(--muted);font-size:13px;background:#fbfdff;}
+td.right{text-align:right}
+.btn{background:var(--accent); color:#fff; border:none; padding:9px 12px; border-radius:8px; cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.small{padding:6px 8px;font-size:13px}
+.danger{background:transparent;border:1px solid #f4c2c2;color:var(--danger)}
+.totals{display:flex;gap:16px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.tot-card{background:#f9fbff;padding:12px;border-radius:10px;font-weight:600}
+.qtybox{display:flex;align-items:center;gap:8px}
+.iconbtn{padding:8px 10px;border-radius:8px;border:1px solid #e6eef8;background:#fff;cursor:pointer;font-weight:700}
+.price-edit{width:100px;padding:8px;border-radius:8px;border:1px solid #e2e8f0}
+@media (max-width:700px){
+  th:nth-child(1), td:nth-child(1){width:120px}
+  .price-edit{width:72px}
+}
+footer{margin-top:18px;color:var(--muted);font-size:13px;text-align:center}
