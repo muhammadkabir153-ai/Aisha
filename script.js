@@ -1,79 +1,166 @@
-let items = JSON.parse(localStorage.getItem("items")) || [];
+/* Robust script.js for Kayan Miya PWA
+   - uses event delegation (single listeners)
+   - always computes totals from items[] (no incremental accumulation)
+   - safe against double-binding and works with service workers
+*/
 
-function renderTable() {
-    const tableBody = document.getElementById("table-body");
-    tableBody.innerHTML = "";
+const STORAGE_KEY = 'kayan_miya_items_v2';
 
-    let totalProfit = 0;
+const DEFAULT_ITEMS = [
+  { name: 'Attaruhu', purchasePrice: 1000, portionPrice: 50, qty: 0 },
+  { name: 'Tumatur', purchasePrice: 1000, portionPrice: 150, qty: 0 },
+  { name: 'Tattasai', purchasePrice: 1500, portionPrice: 100, qty: 0 },
+  { name: 'Albasa me laushi', purchasePrice: 500, portionPrice: 50, qty: 0 },
+  { name: 'Albasa', purchasePrice: 500, portionPrice: 50, qty: 0 },
+  { name: 'Latas', purchasePrice: 500, portionPrice: 50, qty: 0 },
+  { name: 'Alayyahu', purchasePrice: 300, portionPrice: 50, qty: 0 },
+  { name: 'Spices Mix', purchasePrice: 400, portionPrice: 50, qty: 0 }
+];
 
-    items.forEach((item, index) => {
-        const profit = (item.sellingPrice - item.purchasePrice) * item.portionsSold;
-        totalProfit += profit;
+let items = loadItems();
 
-        const row = `
-            <tr>
-                <td>${item.name}</td>
-                <td>${item.purchasePrice.toFixed(2)}</td>
-                <td>${item.sellingPrice.toFixed(2)}</td>
-                <td>${item.quantity}</td>
-                <td>${item.portionsSold}</td>
-                <td>${profit.toFixed(2)}</td>
-                <td>
-                    <button onclick="sellPortion(${index})">Sell Portion</button>
-                    <button onclick="deleteItem(${index})">Delete</button>
-                </td>
-            </tr>
-        `;
-        tableBody.innerHTML += row;
-    });
-
-    document.getElementById("profit").textContent = totalProfit.toFixed(2);
+function loadItems(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) { console.warn('load error', e); }
+  return JSON.parse(JSON.stringify(DEFAULT_ITEMS));
 }
 
-function addItem() {
-    const name = document.getElementById("name").value;
-    const purchasePrice = parseFloat(document.getElementById("purchasePrice").value);
-    const sellingPrice = parseFloat(document.getElementById("sellingPrice").value);
-    const quantity = parseInt(document.getElementById("quantity").value);
+function saveItems(){
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+  catch(e) { console.error('save failed', e); }
+}
 
-    if (!name || isNaN(purchasePrice) || isNaN(sellingPrice) || isNaN(quantity)) {
-        alert("Please fill all fields correctly");
-        return;
+function currency(v){ return '₦' + Number(v||0).toLocaleString(); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]); }
+
+function render(){
+  const tbody = document.querySelector('#itemsTable tbody');
+  tbody.innerHTML = '';
+
+  items.forEach((it, idx) => {
+    const totalSales = (it.qty||0) * (it.portionPrice||0);
+    const profit = (it.qty||0) * ((it.portionPrice||0) - (it.purchasePrice||0));
+    const tr = document.createElement('tr');
+    tr.dataset.idx = idx;
+    tr.innerHTML = `
+      <td>${escapeHtml(it.name)}</td>
+      <td>
+        <input class="price-edit" data-idx="${idx}" type="number" value="${it.portionPrice||0}" min="0" step="1" />
+        <div style="color:#6b7280;font-size:12px">cost ₦${it.purchasePrice||0}</div>
+      </td>
+      <td>
+        <div class="qtybox">
+          <button class="iconbtn" data-action="minus" data-idx="${idx}">−</button>
+          <div style="min-width:48px;text-align:center;font-weight:700" id="qty-${idx}">${it.qty||0}</div>
+          <button class="iconbtn" data-action="plus" data-idx="${idx}">+</button>
+          <input class="small" style="width:72px;margin-left:6px" data-idx="${idx}" type="number" min="0" value="${it.qty||0}" title="Set qty directly" />
+        </div>
+      </td>
+      <td class="right">${currency(totalSales)}</td>
+      <td class="right">${currency(profit)}</td>
+      <td class="right">
+        <button class="small" data-action="editCost" data-idx="${idx}">Edit Cost</button>
+        <button class="small" data-action="delete" data-idx="${idx}">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  updateTotals();
+  saveItems();
+}
+
+/* centralized action handler (call once from delegated listeners) */
+function handleAction(action, idx){
+  if (idx < 0 || idx >= items.length) return;
+  if (action === 'plus'){
+    items[idx].qty = (items[idx].qty||0) + 1;
+  } else if (action === 'minus'){
+    items[idx].qty = Math.max(0, (items[idx].qty||0) - 1);
+  } else if (action === 'delete'){
+    if (confirm('Delete this item?')) { items.splice(idx,1); }
+  } else if (action === 'editCost'){
+    const v = prompt('Enter purchase cost (₦):', items[idx].purchasePrice || 0);
+    if (v !== null) items[idx].purchasePrice = Math.round(Number(v) || 0);
+  }
+  render();
+}
+
+function updateTotals(){
+  const tot = items.reduce((a,it) => {
+    a.qty += (it.qty||0);
+    a.sales += (it.qty||0) * (it.portionPrice||0);
+    a.profit += (it.qty||0) * ((it.portionPrice||0) - (it.purchasePrice||0));
+    return a;
+  }, {qty:0, sales:0, profit:0});
+  document.getElementById('totalQty').textContent = tot.qty;
+  document.getElementById('totalSales').textContent = currency(tot.sales);
+  document.getElementById('totalProfit').textContent = currency(tot.profit);
+}
+
+/* wire up global listeners only once (delegation pattern) */
+document.addEventListener('DOMContentLoaded', ()=>{
+  render();
+
+  const tbody = document.querySelector('#itemsTable tbody');
+
+  // click delegation for all buttons inside table
+  tbody.addEventListener('click', (ev)=>{
+    const btn = ev.target.closest('button[data-action]');
+    if (!btn) return;
+    ev.preventDefault();
+    const idx = Number(btn.dataset.idx);
+    const action = btn.dataset.action;
+    handleAction(action, idx);
+  });
+
+  // change delegation for inputs inside table (price edits and qty direct input)
+  tbody.addEventListener('change', (ev)=>{
+    const el = ev.target;
+    if (el.matches('.price-edit')){
+      const idx = Number(el.dataset.idx);
+      items[idx].portionPrice = Math.max(0, Math.round(Number(el.value) || 0));
+      render();
+    } else if (el.matches('input[title]')){
+      const idx = Number(el.dataset.idx);
+      items[idx].qty = Math.max(0, Math.floor(Number(el.value) || 0));
+      render();
     }
+  });
 
-    items.push({
-        name,
-        purchasePrice,
-        sellingPrice,
-        quantity,
-        portionsSold: 0
-    });
+  // add / reset / clear / export listeners
+  document.getElementById('addBtn').addEventListener('click', ()=>{
+    const n = document.getElementById('newName').value.trim();
+    const p = Math.round(Number(document.getElementById('newPrice').value) || 0);
+    if (!n || p <= 0){ alert('Please enter a valid name and price (>=1).'); return; }
+    items.push({ name: n, purchasePrice: 0, portionPrice: p, qty: 0 });
+    document.getElementById('newName').value = ''; document.getElementById('newPrice').value = '';
+    render();
+  });
 
-    localStorage.setItem("items", JSON.stringify(items));
-    renderTable();
-    document.getElementById("name").value = "";
-    document.getElementById("purchasePrice").value = "";
-    document.getElementById("sellingPrice").value = "";
-    document.getElementById("quantity").value = "";
-}
+  document.getElementById('resetBtn').addEventListener('click', ()=>{
+    if (!confirm('Reset all portion counts to zero?')) return;
+    items.forEach(it=> it.qty = 0);
+    render();
+  });
 
-function sellPortion(index) {
-    if (items[index].quantity > 0) {
-        items[index].quantity -= 1;
-        items[index].portionsSold += 1;
-        localStorage.setItem("items", JSON.stringify(items));
-        renderTable();
-    } else {
-        alert("No more portions available");
-    }
-}
+  document.getElementById('clearAllBtn').addEventListener('click', ()=>{
+    if (!confirm('Clear all data (items and counts)?')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    items = loadItems();
+    render();
+  });
 
-function deleteItem(index) {
-    if (confirm("Are you sure you want to delete this item?")) {
-        items.splice(index, 1);
-        localStorage.setItem("items", JSON.stringify(items));
-        renderTable();
-    }
-}
+  document.getElementById('exportCsv').addEventListener('click', ()=>{
+    const rows = [['name','purchasePrice','portionPrice','qty','totalSales','profit']];
+    items.forEach(it=> rows.push([it.name, it.purchasePrice||0, it.portionPrice||0, it.qty||0, (it.qty||0)*(it.portionPrice||0), (it.qty||0)*((it.portionPrice||0)-(it.purchasePrice||0)) ]));
+    const csv = rows.map(r => r.map(c => `\"${String(c).replace(/\"/g,'\"\"')}\"`).join(',')).join('\\n');
+    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'portion_export_'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  });
 
-document.addEventListener("DOMContentLoaded", renderTable);
+});
